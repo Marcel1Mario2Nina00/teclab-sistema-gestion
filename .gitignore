@@ -1,0 +1,12 @@
+# Dependencias y archivos sensibles
+node_modules/
+.env
+
+# Archivos subidos de prueba
+uploads/
+
+# Carpetas locales de herramientas/agentes
+.agents/
+.claude/
+.cursor/
+.devin/

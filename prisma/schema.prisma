@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model categorias_analisis {
+  id             Int              @id @default(autoincrement())
+  nombre         String           @unique(map: "nombre") @db.VarChar(100)
+  tipos_analisis tipos_analisis[]
+}
+
+model centros_medicos {
+  id                   Int                     @id @default(autoincrement())
+  nombre               String                  @db.VarChar(150)
+  responsable          String                  @db.VarChar(150)
+  direccion            String                  @db.VarChar(255)
+  telefono             String?                 @db.VarChar(20)
+  especialidades       String?                 @db.Text
+  ruta_carta_notariada String?                 @db.VarChar(255)
+  estado               centros_medicos_estado? @default(Pendiente)
+  fecha_registro       DateTime?               @default(now()) @db.Timestamp(0)
+  medicos              medicos[]
+}
+
+model detalles_solicitud {
+  id                   Int                                 @id @default(autoincrement())
+  solicitud_id         Int
+  tipo_analisis_id     Int
+  laboratorista_id     Int?
+  estado_analisis      detalles_solicitud_estado_analisis? @default(Pendiente)
+  solicitudes          solicitudes                         @relation(fields: [solicitud_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "detalles_solicitud_ibfk_1")
+  tipos_analisis       tipos_analisis                      @relation(fields: [tipo_analisis_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "detalles_solicitud_ibfk_2")
+  personal_laboratorio personal_laboratorio?               @relation(fields: [laboratorista_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "detalles_solicitud_ibfk_3")
+  resultados           resultados?
+
+  @@index([laboratorista_id], map: "laboratorista_id")
+  @@index([solicitud_id], map: "solicitud_id")
+  @@index([tipo_analisis_id], map: "tipo_analisis_id")
+}
+
+model imagenes_resultado {
+  id           Int        @id @default(autoincrement())
+  resultado_id Int
+  ruta_imagen  String     @db.VarChar(255)
+  descripcion  String?    @db.VarChar(150)
+  resultados   resultados @relation(fields: [resultado_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "imagenes_resultado_ibfk_1")
+
+  @@index([resultado_id], map: "resultado_id")
+}
+
+model medicos {
+  id              Int             @id @default(autoincrement())
+  usuario_id      Int             @unique(map: "usuario_id")
+  centro_id       Int
+  nombre_completo String          @db.VarChar(150)
+  telefono        String?         @db.VarChar(20)
+  especialidad    String?         @db.VarChar(100)
+  usuarios        usuarios        @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "medicos_ibfk_1")
+  centros_medicos centros_medicos @relation(fields: [centro_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "medicos_ibfk_2")
+  solicitudes     solicitudes[]
+
+  @@index([centro_id], map: "centro_id")
+}
+
+model pacientes {
+  id              Int            @id @default(autoincrement())
+  ci              String         @unique(map: "ci") @db.VarChar(20)
+  nombre_completo String         @db.VarChar(150)
+  edad            Int?
+  sexo            pacientes_sexo
+  solicitudes     solicitudes[]
+}
+
+model personal_laboratorio {
+  id                 Int                        @id @default(autoincrement())
+  usuario_id         Int                        @unique(map: "usuario_id")
+  nombre_completo    String                     @db.VarChar(150)
+  cargo              personal_laboratorio_cargo
+  detalles_solicitud detalles_solicitud[]
+  usuarios           usuarios                   @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "personal_laboratorio_ibfk_1")
+  solicitudes        solicitudes[]
+}
+
+model resultados {
+  id                 Int                  @id @default(autoincrement())
+  detalle_id         Int                  @unique(map: "detalle_id")
+  informe_texto      String               @db.LongText
+  fecha_registro     DateTime?            @default(now()) @db.Timestamp(0)
+  imagenes_resultado imagenes_resultado[]
+  detalles_solicitud detalles_solicitud   @relation(fields: [detalle_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "resultados_ibfk_1")
+}
+
+model roles {
+  id       Int        @id @default(autoincrement())
+  nombre   String     @unique(map: "nombre") @db.VarChar(50)
+  usuarios usuarios[]
+}
+
+model solicitudes {
+  id                   Int                         @id @default(autoincrement())
+  paciente_id          Int
+  medico_id            Int
+  recepcionista_id     Int?
+  fecha_solicitud      DateTime?                   @default(now()) @db.Timestamp(0)
+  forma_obtencion      solicitudes_forma_obtencion
+  observaciones        String?                     @db.Text
+  estado_general       solicitudes_estado_general? @default(Pendiente)
+  detalles_solicitud   detalles_solicitud[]
+  pacientes            pacientes                   @relation(fields: [paciente_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "solicitudes_ibfk_1")
+  medicos              medicos                     @relation(fields: [medico_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "solicitudes_ibfk_2")
+  personal_laboratorio personal_laboratorio?       @relation(fields: [recepcionista_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "solicitudes_ibfk_3")
+
+  @@index([medico_id], map: "medico_id")
+  @@index([paciente_id], map: "paciente_id")
+  @@index([recepcionista_id], map: "recepcionista_id")
+}
+
+model tipos_analisis {
+  id                  Int                  @id @default(autoincrement())
+  categoria_id        Int
+  nombre              String               @db.VarChar(150)
+  detalles_solicitud  detalles_solicitud[]
+  categorias_analisis categorias_analisis  @relation(fields: [categoria_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tipos_analisis_ibfk_1")
+
+  @@index([categoria_id], map: "categoria_id")
+}
+
+model usuarios {
+  id                   Int                   @id @default(autoincrement())
+  username             String                @unique(map: "username") @db.VarChar(50)
+  password_hash        String                @db.VarChar(255)
+  rol_id               Int
+  estado               usuarios_estado?      @default(Activo)
+  fecha_creacion       DateTime?             @default(now()) @db.Timestamp(0)
+  medicos              medicos?
+  personal_laboratorio personal_laboratorio?
+  roles                roles                 @relation(fields: [rol_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "usuarios_ibfk_1")
+
+  @@index([rol_id], map: "rol_id")
+}
+
+enum personal_laboratorio_cargo {
+  Recepcionista
+  Laboratorista
+}
+
+enum detalles_solicitud_estado_analisis {
+  Pendiente
+  Procesando
+  Completado
+}
+
+enum pacientes_sexo {
+  M
+  F
+  Otro
+}
+
+enum usuarios_estado {
+  Activo
+  Inactivo
+}
+
+enum solicitudes_forma_obtencion {
+  Paciente_trae_muestra      @map("Paciente trae muestra")
+  Laboratorio_recoge_muestra @map("Laboratorio recoge muestra")
+}
+
+enum centros_medicos_estado {
+  Pendiente
+  Aprobado
+  Rechazado
+}
+
+enum solicitudes_estado_general {
+  Pendiente
+  En_Proceso @map("En Proceso")
+  Finalizado
+}
