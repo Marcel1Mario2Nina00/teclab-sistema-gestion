@@ -5,7 +5,8 @@ const path = require('path');
 const {
     listarAnalisisPendientes,
     registrarResultado,
-    obtenerResultadosPorSolicitud
+    obtenerResultadosPorSolicitud,
+    generarInformePDF
 } = require('../controllers/resultados.controller');
 const { verificarToken, permitirRoles } = require('../middlewares/auth.middleware');
 
@@ -29,5 +30,6 @@ const upload = multer({ storage });
 router.get('/pendientes', verificarToken, permitirRoles('Laboratorista'), listarAnalisisPendientes);
 router.post('/', verificarToken, permitirRoles('Laboratorista'), upload.array('imagenes', 5), registrarResultado);
 router.get('/solicitud/:solicitud_id', verificarToken, obtenerResultadosPorSolicitud);
+router.get('/solicitud/:solicitud_id/pdf', verificarToken, generarInformePDF);
 
 module.exports = router;
