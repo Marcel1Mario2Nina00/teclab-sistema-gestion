@@ -69,5 +69,16 @@ const cambiarEstado = async (req, res) => {
         res.status(500).json({ message: 'Error al actualizar el estado de la suscripción' });
     }
 };
+const listarCentros = async (req, res) => {
+    try {
+        const centros = await prisma.centros_medicos.findMany({
+            orderBy: { fecha_registro: 'desc' }
+        });
+        res.json(centros);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al listar los centros médicos' });
+    }
+};
 
-module.exports = { solicitarSuscripcion, listarPendientes, cambiarEstado };
+module.exports = { solicitarSuscripcion, listarPendientes, cambiarEstado, listarCentros };

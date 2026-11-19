@@ -3,7 +3,8 @@ const multer = require('multer');
 const { 
     solicitarSuscripcion, 
     listarPendientes, 
-    cambiarEstado 
+    cambiarEstado,
+    listarCentros 
 } = require('../controllers/centros.controller');
 
 const router = express.Router();
@@ -23,5 +24,6 @@ const upload = multer({ storage: storage });
 router.post('/suscribir', upload.single('carta'), solicitarSuscripcion);
 router.get('/pendientes', listarPendientes);
 router.put('/:id/estado', cambiarEstado);
+router.get('/', listarCentros);
 
 module.exports = router;
