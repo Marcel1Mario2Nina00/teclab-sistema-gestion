@@ -122,4 +122,94 @@ const listarSolicitudes = async (req, res) => {
     }
 };
 
-module.exports = { listarCatalogo, crearSolicitud, listarSolicitudes };
+// 4. Listar laboratoristas disponibles (para que el Recepcionista elija a quién asignar)
+const listarLaboratoristas = async (req, res) => {
+    try {
+        const laboratoristas = await prisma.personal_laboratorio.findMany({
+            where: { cargo: 'Laboratorista' },
+            select: {
+                id: true,
+                nombre_completo: true,
+                cargo: true
+            }
+        });
+        res.json(laboratoristas);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al listar laboratoristas' });
+    }
+};
+
+// 5. Asignar una solicitud y sus análisis a un Laboratorista (solo Recepcionista)
+const asignarLaboratorista = async (req, res) => {
+    try {
+        const { id } = req.params; // ID de la solicitud
+        const { laboratorista_id } = req.body;
+
+        if (!laboratorista_id) {
+            return res.status(400).json({ message: 'Debe indicar el laboratorista_id' });
+        }
+
+        // Buscar el perfil del recepcionista autenticado
+        const recepcionista = await prisma.personal_laboratorio.findUnique({
+            where: { usuario_id: req.user.id }
+        });
+
+        if (!recepcionista) {
+            return res.status(404).json({ message: 'Perfil de recepcionista no encontrado' });
+        }
+
+        // Verificar que el laboratorista exista
+        const laboratorista = await prisma.personal_laboratorio.findUnique({
+            where: { id: parseInt(laboratorista_id) }
+        });
+
+        if (!laboratorista || laboratorista.cargo !== 'Laboratorista') {
+            return res.status(404).json({ message: 'Laboratorista no válido' });
+        }
+
+        // Transacción: registrar recepcionista en la solicitud y asignar laboratorista a los análisis
+        const solicitudActualizada = await prisma.$transaction(async (tx) => {
+            await tx.detalles_solicitud.updateMany({
+                where: { solicitud_id: parseInt(id) },
+                data: {
+                    laboratorista_id: parseInt(laboratorista_id),
+                    estado_analisis: 'Procesando'
+                }
+            });
+
+            return await tx.solicitudes.update({
+                where: { id: parseInt(id) },
+                data: {
+                    recepcionista_id: recepcionista.id,
+                    estado_general: 'En_Proceso'
+                },
+                include: {
+                    pacientes: true,
+                    detalles_solicitud: {
+                        include: {
+                            tipos_analisis: true,
+                            personal_laboratorio: { select: { id: true, nombre_completo: true } }
+                        }
+                    }
+                }
+            });
+        });
+
+        res.json({
+            message: `Solicitud #${id} asignada correctamente a ${laboratorista.nombre_completo}`,
+            solicitud: solicitudActualizada
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al asignar la solicitud' });
+    }
+};
+
+module.exports = {
+    listarCatalogo,
+    crearSolicitud,
+    listarSolicitudes,
+    listarLaboratoristas,
+    asignarLaboratorista
+};

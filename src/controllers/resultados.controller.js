@@ -1,11 +1,21 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// 1. Listar análisis pendientes o en proceso (para el Laboratorista)
+
+// 1. Listar análisis asignados al Laboratorista autenticado
 const listarAnalisisPendientes = async (req, res) => {
     try {
+        const laboratorista = await prisma.personal_laboratorio.findUnique({
+            where: { usuario_id: req.user.id }
+        });
+
+        if (!laboratorista) {
+            return res.status(404).json({ message: 'Perfil de laboratorista no encontrado' });
+        }
+
         const pendientes = await prisma.detalles_solicitud.findMany({
             where: {
+                laboratorista_id: laboratorista.id,
                 estado_analisis: { in: ['Pendiente', 'Procesando'] }
             },
             include: {
