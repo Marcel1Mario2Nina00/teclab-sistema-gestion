@@ -13,12 +13,15 @@ const authRoutes = require('./routes/auth.routes');
 const centrosRoutes = require('./routes/centros.routes');
 const medicosRoutes = require('./routes/medicos.routes');
 const solicitudesRoutes = require('./routes/solicitudes.routes');
+const resultadosRoutes = require('./routes/resultados.routes');
 
 // Usar Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/centros', centrosRoutes);
 app.use('/api/medicos', medicosRoutes);
 app.use('/api/solicitudes', solicitudesRoutes); 
+app.use('/api/resultados', resultadosRoutes);
+
 // Ruta de prueba
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor TECLAB funcionando' });
